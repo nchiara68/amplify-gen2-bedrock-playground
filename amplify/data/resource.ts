@@ -51,19 +51,12 @@ Your response should always focus on helping the user move closer to their desir
 When unsure, offer options or examples to guide the user toward the best path forward.
 `;
 const schema = a.schema({
-    chat: a
+    ActCounselor: a
         .conversation({
             aiModel: a.ai.model("Claude 3.5 Sonnet"),
             systemPrompt: SystemPromptACTCounselor,
         })
         .authorization((allow) => allow.owner()),
-
-    // ACTCounselor: a
-    //     .conversation({
-    //         aiModel: a.ai.model("Claude 3.5 Sonnet"),
-    //         systemPrompt: SystemPromptACTCounselor,
-    //     })
-    //     .authorization((allow) => allow.owner()),
 
     ActionPlanStep: a.customType({
         stepNumber: a.integer().required(), // Step order in the action plan
