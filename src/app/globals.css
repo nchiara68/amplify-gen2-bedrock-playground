@@ -1,21 +1,168 @@
+/* Import Tailwind CSS layers for base, components, and utilities. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Define root-level CSS custom properties (variables) for light mode. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --header-height: 16px; /* Height of the header */
+
+    /* Color variables for light mode */
+    --background: #ffffff; /* Background color */
+    --foreground: #171717; /* Primary foreground (text) color */
+    --primary-text-color: #171717; /* Primary text color */
+    --secondary-text-color: #757575; /* Secondary text color */
+
+    /* Amplify-specific color variables */
+    --amplify-colors-font-primary: var(--primary-text-color); /* Amplify primary font color */
+    --amplify-colors-font-secondary: var(--secondary-text-color); /* Amplify secondary font color */
+    --amplify-colors-background-primary: var(--background); /* Amplify primary background color */
+    --amplify-colors-background-secondary: #f5f5f5; /* Amplify secondary background color */
+
+    /* Hover effect colors for light mode */
+    --hover-background: #eaeaea7e; /* Light mode hover background color */
+    --hover-foreground: #000000; /* Light mode hover text color */
 }
 
+/* Define variables for dark mode when the user's system prefers a dark color scheme. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+    :root {
+        --background: #121212; /* Dark mode background color */
+        --foreground: #f5f5f5; /* Dark mode foreground (text) color */
+        --primary-text-color: #f5f5f5; /* Primary text color for dark mode */
+        --secondary-text-color: #b0b0b0; /* Secondary text color for dark mode */
+
+        /* Hover effect colors for dark mode */
+        --hover-background: #1e1e1e; /* Dark mode hover background color */
+        --hover-foreground: #ffffff; /* Dark mode hover text color */
+    }
 }
 
+/* Global body styles */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background); /* Use the background color variable */
+    color: var(--foreground); /* Use the foreground color variable */
+    font-family: "Inter", Arial, sans-serif; /* Set the primary font family */
+    max-width: 800px; /* Limit the maximum width for better readability */
+    margin: 0 auto; /* Center the content horizontally */
+    padding: 2; /* Apply padding around the body */
+}
+
+/* Header styles to keep it fixed at the top of the page. */
+header {
+    position: fixed; /* Fix the header's position */
+    height: var(--header-height); /* Set the header's height using a variable */
+}
+
+/* Main content styles */
+main {
+    margin-top: var(--header-height); /* Ensure space for the fixed header */
+    padding: var(--header-height); /* Add padding equal to the header height */
+}
+
+/* Links and buttons - smooth hover transitions for background and color */
+a,
+button {
+    transition: background-color 0.3s, color 0.3s; /* Add smooth hover effects */
+}
+
+a:hover,
+button:hover {
+    background-color: var(--hover-background); /* Change background on hover */
+    color: var(--hover-foreground); /* Change text color on hover */
+}
+
+/* Sidebar styles */
+.sidebar {
+    width: 16rem; /* Set the sidebar width */
+    min-width: 16rem; /* Ensure a consistent minimum width */
+    max-width: 16rem; /* Ensure a consistent maximum width */
+    position: fixed; /* Keep the sidebar fixed on the screen */
+    top: 0; /* Align the sidebar to the top */
+    left: 0; /* Align the sidebar to the left */
+    height: 100%; /* Make the sidebar full-height */
+    background-color: var(--background); /* Use the background variable */
+    color: var(--foreground); /* Use the text color variable */
+    padding: 1rem; /* Add padding inside the sidebar */
+    transform: translateX(-100%); /* Initially hide the sidebar off-screen */
+    transition: transform 0.3s ease; /* Smooth slide-in and slide-out animation */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5); /* Add a shadow for depth */
+    z-index: 1000; /* Ensure the sidebar appears above other content */
+}
+
+/* Sidebar open state - move the sidebar into view */
+.sidebar.open {
+    transform: translateX(0);
+}
+
+/* Sidebar overlay - dark transparent background for focus effect */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
+    opacity: 0; /* Initially hidden */
+    visibility: hidden; /* Prevent interaction when hidden */
+    transition: opacity 0.3s ease; /* Smooth fade-in and fade-out */
+    z-index: 999; /* Layer below the sidebar */
+}
+
+/* Visible state for the sidebar overlay */
+.sidebar-overlay.visible {
+    opacity: 1; /* Fully visible */
+    visibility: visible; /* Allow interaction */
+}
+
+/* Sidebar header styles */
+.sidebar-header {
+    display: flex; /* Use Flexbox for layout */
+    justify-content: space-between; /* Distribute space between header items */
+    align-items: center; /* Center items vertically */
+    margin-bottom: 1.5rem; /* Add spacing below the header */
+}
+
+.sidebar-header h2 {
+    font-size: 1.25rem; /* Set the title font size */
+    margin: 0; /* Remove default margin */
+}
+
+.sidebar-header button {
+    font-size: 1.5rem; /* Increase button size */
+    cursor: pointer; /* Show pointer cursor on hover */
+    background: none; /* Remove default background */
+    border: none; /* Remove default border */
+    color: var(--foreground); /* Use the foreground color */
+    transition: color 0.3s ease; /* Smooth hover effect */
+}
+
+.sidebar-header button:hover {
+    color: var(--accent-color); /* Change color on hover */
+}
+
+/* Sidebar item styles */
+.sidebar-item {
+    display: block; /* Ensure the item behaves like a block */
+    padding: 0.75rem 1rem; /* Add padding */
+    border-radius: var(--border-radius); /* Round the corners */
+    text-decoration: none; /* Remove underline for links */
+    color: var(--foreground); /* Use the foreground color */
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth hover effect */
+}
+
+.sidebar-item:hover {
+    background-color: #333333; /* Darker background on hover */
+}
+
+.sidebar-item.active {
+    background-color: var(--accent-color); /* Highlight active item */
+    color: var(--background); /* Use background color for contrast */
+}
+
+/* Responsive styles for smaller screens */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 12rem; /* Reduce sidebar width for smaller screens */
+    }
 }
