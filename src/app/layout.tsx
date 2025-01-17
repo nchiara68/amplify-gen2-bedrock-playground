@@ -70,7 +70,7 @@ export default function RootLayout({
                 <Authenticator>
                     {/* The `Authenticator` component provides a complete authentication solution.
                         It handles sign-in, sign-out, and user session management. */}
-                    {({ signOut, user }) => (
+                    {({ signOut }) => (
                         // The render prop pattern is used here, passing `signOut` (function) and `user` (object)
                         // from the `Authenticator` component to customize the UI.
                         <main>

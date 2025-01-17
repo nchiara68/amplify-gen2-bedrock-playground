@@ -25,7 +25,7 @@ import {
     fetchUserAttributes,
     updateUserAttribute,
     confirmUserAttribute,
-    sendUserAttributeVerificationCode,
+    // sendUserAttributeVerificationCode,
     type VerifiableUserAttributeKey,
 } from "aws-amplify/auth";
 // Amplify Auth utilities for managing user attributes and authentication flows.
@@ -114,7 +114,7 @@ export default function AccountSettingsPage() {
             }
             fetchAttributes(); // Refresh user attributes.
         } catch (error) {
-            setMessage(`Failed to update ${key}.`);
+            setMessage(`Failed to update ${key}. ${error}`);
         } finally {
             setLoading(false);
         }
@@ -139,7 +139,7 @@ export default function AccountSettingsPage() {
             setConfirmationCode(""); // Clear the confirmation code input.
             fetchAttributes(); // Refresh user attributes.
         } catch (error) {
-            setEmailMessage("Failed to confirm attribute.");
+            setEmailMessage(`Failed to confirm attribute. ${error}`);
         } finally {
             setLoading(false);
         }

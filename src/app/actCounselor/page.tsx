@@ -17,23 +17,19 @@ export default function ACTCounselor() {
     ] = useAIConversation(selectedModel);
 
     return (
-        <Authenticator>
-            {({ signOut, user }) => (
-                <Flex direction="column" gap="1rem" style={{ width: "100%" }}>
-                    <Flex>
-                        <Heading level={1}>ACT Counselor</Heading>
-                    </Flex>
-                    <Text>Features: Chat Conversation, Prompt Engineering</Text>
-                    <View>
-                        <AIConversation
-                            messages={messages}
-                            isLoading={isLoading}
-                            handleSendMessage={handleSendMessage}
-                        />
-                    </View>
-                </Flex>
-            )}
-        </Authenticator>
+        <Flex direction="column" gap="1rem" style={{ width: "100%" }}>
+            <Flex>
+                <Heading level={1}>ACT Counselor</Heading>
+            </Flex>
+            <Text>Features: Chat Conversation, Prompt Engineering</Text>
+            <View>
+                <AIConversation
+                    messages={messages}
+                    isLoading={isLoading}
+                    handleSendMessage={handleSendMessage}
+                />
+            </View>
+        </Flex>
     );
 }
 
