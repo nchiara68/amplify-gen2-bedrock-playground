@@ -10,11 +10,8 @@ import {
     Text,
     Button,
     TextField,
-    Loader,
     Table,
-    TableHead,
     TableCell,
-    TableRow,
     TableBody,
 } from "@aws-amplify/ui-react";
 
