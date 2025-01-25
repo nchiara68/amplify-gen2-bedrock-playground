@@ -1,4 +1,10 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { createFaissIndexFunctionHandler } from "../custom-functions/createFaissIndex/resource";
+import { ragFaissIndexFunctionHandler } from "../custom-functions/ragFiassIndex/resource";
+import { createOpenSearchServerlessCollectionFunctionHandler } from "../custom-functions/createOpenSearchServerlessCollection/resource";
+import { deleteOpenSearchServerlessCollectionFunctionHandler } from "../custom-functions/deleteOpenSearchServerlessCollection/resource";
+import { createKnowledgeBaseFunctionHandler } from "../custom-functions/createKnowledgeBase/resource";
+import { deleteKnowledgeBaseFunctionHandler } from "../custom-functions/deleteKnowledgeBase/resource";
 
 const SystemPromptACTCounselor = `System Prompt: Sophisticated ACT Counselor
 
@@ -51,6 +57,7 @@ Your response should always focus on helping the user move closer to their desir
 When unsure, offer options or examples to guide the user toward the best path forward.
 `;
 const schema = a.schema({
+    // ACT Counselor
     ActCounselor: a
         .conversation({
             aiModel: a.ai.model("Claude 3.5 Sonnet"),
@@ -58,6 +65,7 @@ const schema = a.schema({
         })
         .authorization((allow) => allow.owner()),
 
+    // Action Planner
     ActionPlanStep: a.customType({
         stepNumber: a.integer().required(), // Step order in the action plan
         actionItem: a.string().required(), // Specific action to be taken
@@ -86,6 +94,85 @@ const schema = a.schema({
             description: a.string().required(), // The task or goal description provided by the user
         })
         .returns(a.ref("ActionPlan")) // Returns the structured action plan
+        .authorization((allow) => allow.authenticated()),
+
+    // create FAISS Index
+    createFaissIndex: a
+        .query()
+        .arguments({
+            s3_bucket: a.string().required(),
+            s3_key: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(createFaissIndexFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // rag FAISS Index
+    ragFaissIndex: a
+        .query()
+        .arguments({
+            s3_bucket: a.string().required(),
+            query: a.string().required(),
+            k: a.integer(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(ragFaissIndexFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // create Collection
+    createOpenSearchServerlessCollection: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+            description: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(
+                createOpenSearchServerlessCollectionFunctionHandler
+            )
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    // delete Collection
+    deleteOpenSearchServerlessCollection: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(
+                deleteOpenSearchServerlessCollectionFunctionHandler
+            )
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    // create Knowledge Base
+    createKnowledgeBase: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+            collectionDescription: a.string().required(),
+            knowledgeBaseName: a.string().required(),
+            description: a.string().required(),
+            embeddingModelArn: a.string().required(),
+            vectorIndexName: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(createKnowledgeBaseFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // delete Knowledge Base
+    deleteKnowledgeBase: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+            knowledgeBaseName: a.string().required(),
+            roleName: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(deleteKnowledgeBaseFunctionHandler))
         .authorization((allow) => allow.authenticated()),
 });
 

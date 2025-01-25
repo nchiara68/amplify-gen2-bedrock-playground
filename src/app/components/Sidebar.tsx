@@ -48,6 +48,10 @@ export default function Sidebar({
                     ACT Counselor
                 </Link>
 
+                <Link href="/employeeInformationRetriever" className="sidebar-item">
+                    Employee Information Retriever
+                </Link>
+
                 {/* Divider above Account Settings */}
                 <hr className="sidebar-divider" />
                 {/* A horizontal rule styled as a divider */}
