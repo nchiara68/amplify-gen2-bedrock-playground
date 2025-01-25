@@ -93,12 +93,23 @@ export default function EmployeeInformationRetriever() {
                         console.log(message);
                         setCreateFaissIndexResponseStatusCode(statusCode);
                         setCreateFaissIndexResponseMessage(message);
-                    } catch (error: any) {
-                        console.error("Error creating FAISS index:", error);
-                        setCreateFaissIndexResponseStatusCode(500);
-                        setCreateFaissIndexResponseMessage(
-                            "Failed to create FAISS index."
-                        );
+                    } catch (error: unknown) {
+                        if (error instanceof Error) {
+                            console.error(
+                                "Error creating FAISS index:",
+                                error.message
+                            );
+                            setCreateFaissIndexResponseStatusCode(500);
+                            setCreateFaissIndexResponseMessage(
+                                "Failed to create FAISS index."
+                            );
+                        } else {
+                            console.error("Error creating FAISS index:", error);
+                            setCreateFaissIndexResponseStatusCode(500);
+                            setCreateFaissIndexResponseMessage(
+                                "Failed to create FAISS index."
+                            );
+                        }
                     } finally {
                         setIsCreatingFaissIndex(false);
                     }
@@ -123,7 +134,7 @@ export default function EmployeeInformationRetriever() {
                     <TableCell>{s3_folder_prefix}</TableCell>
                 </TableBody>
             </Table>
-            
+
             {createFaissIndexResponseStatusCode !== 0 && (
                 <Flex direction="column" alignItems="center" gap="0.5rem">
                     <Text>
@@ -231,11 +242,14 @@ export default function EmployeeInformationRetriever() {
                             setRetrievedDocs(
                                 parsedBody?.retrieved_docs as RetrievedDocs
                             );
-                        } catch (error: any) {
-                            console.error("Error processing RAG query:", error);
-                            setRagError(
-                                "Failed to generate an answer (client error)."
-                            );
+                        } catch (error: unknown) {
+                            if (error instanceof Error) {
+                                console.error("Error processing RAG query:", error.message);
+                                setRagError(error.message || "Failed to generate an answer.");
+                            } else {
+                                console.error("Unexpected error:", error);
+                                setRagError("Failed to generate an answer (unknown error).");
+                            }
                         } finally {
                             setIsProcessingRag(false);
                         }
