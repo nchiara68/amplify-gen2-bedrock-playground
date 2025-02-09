@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-    handlers=[logging.StreamHandler()]
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,12 @@ FAISS_INDEX_S3_KEY: str = f"faiss_indexes/{FAISS_INDEX_NAME}"
 DOC_IDS_S3_KEY: str = f"faiss_indexes/{DOC_IDS_FILENAME}"
 
 # Bedrock Model Configuration
-BEDROCK_EMBED_MODEL_ID: str = os.environ.get("BEDROCK_EMBED_MODEL_ID", "cohere.embed-multilingual-v3")
-BEDROCK_GEN_MODEL_ID: str = os.environ.get("BEDROCK_GEN_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0")
+BEDROCK_EMBED_MODEL_ID: str = os.environ.get(
+    "BEDROCK_EMBED_MODEL_ID", "cohere.embed-multilingual-v3"
+)
+BEDROCK_GEN_MODEL_ID: str = os.environ.get(
+    "BEDROCK_GEN_MODEL_ID", "anthropic.claude-3-5-sonnet-20240620-v1:0"
+)
 
 # Batching for embedding requests
 BATCH_SIZE: int = 32
@@ -44,15 +48,13 @@ BATCH_SIZE: int = 32
 # Utility / Helper Functions
 # ------------------------------------------------------------------------------
 
+
 def load_faiss_index(
-    s3_client: "boto3.client",
-    bucket: str,
-    index_key: str,
-    embedding_dim: int
+    s3_client: "boto3.client", bucket: str, index_key: str, embedding_dim: int
 ) -> faiss.Index:
     """
     Loads a FAISS index from S3. If it does not exist, creates a new L2 index.
-    
+
     :param s3_client: An S3 client for downloading the index.
     :param bucket: Name of the S3 bucket.
     :param index_key: S3 key (path) under which the FAISS index is stored.
@@ -61,30 +63,36 @@ def load_faiss_index(
     """
     with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
         try:
-            logger.info(f"Attempting to download FAISS index from s3://{bucket}/{index_key} ...")
+            logger.info(
+                f"Attempting to download FAISS index from s3://{bucket}/{index_key} ..."
+            )
             s3_client.download_file(bucket, index_key, tmp_file.name)
             index = faiss.read_index(tmp_file.name)
-            logger.info(f"Loaded FAISS index from s3://{bucket}/{index_key} (dim: {index.d}).")
+            logger.info(
+                f"Loaded FAISS index from s3://{bucket}/{index_key} (dim: {index.d})."
+            )
         except ClientError as e:
             error_code = e.response["Error"]["Code"]
             if error_code == "NoSuchKey":
-                logger.warning("FAISS index not found in S3. Creating a new IndexFlatL2 index...")
+                logger.warning(
+                    "FAISS index not found in S3. Creating a new IndexFlatL2 index..."
+                )
                 index = faiss.IndexFlatL2(embedding_dim)
-                logger.info(f"Created new FAISS IndexFlatL2 with dimension: {embedding_dim}")
+                logger.info(
+                    f"Created new FAISS IndexFlatL2 with dimension: {embedding_dim}"
+                )
             else:
                 logger.error(f"Failed to download FAISS index from S3: {e}")
                 raise e
         except Exception as e:
-            logger.error(f"Unexpected error loading FAISS index: {traceback.format_exc()}")
+            logger.error(
+                f"Unexpected error loading FAISS index: {traceback.format_exc()}"
+            )
             raise e
     return index
 
 
-def load_doc_ids(
-    s3_client: "boto3.client",
-    bucket: str,
-    key: str
-) -> List[str]:
+def load_doc_ids(s3_client: "boto3.client", bucket: str, key: str) -> List[str]:
     """
     Loads a list of document IDs from S3 (via pickle).
     If the file does not exist, returns an empty list.
@@ -109,7 +117,9 @@ def load_doc_ids(
             logger.warning("Document IDs not found in S3. Returning an empty list.")
             return []
         else:
-            logger.error(f"Failed to load document IDs from S3: {traceback.format_exc()}")
+            logger.error(
+                f"Failed to load document IDs from S3: {traceback.format_exc()}"
+            )
             return []
     except Exception as e:
         logger.error(f"Error loading document IDs: {traceback.format_exc()}")
@@ -119,7 +129,7 @@ def load_doc_ids(
 def get_embeddings(
     texts: List[str],
     bedrock_client: "boto3.client",
-    model_id: str = BEDROCK_EMBED_MODEL_ID
+    model_id: str = BEDROCK_EMBED_MODEL_ID,
 ) -> List[List[float]]:
     """
     Retrieves embeddings for the given texts using the specified Bedrock embedding model.
@@ -142,7 +152,7 @@ def get_embeddings(
             response = bedrock_client.invoke_model(
                 modelId=model_id,
                 contentType="application/json",
-                body=json.dumps(payload)
+                body=json.dumps(payload),
             )
             response_body = response["body"].read().decode("utf-8")
             response_payload = json.loads(response_body)
@@ -151,7 +161,9 @@ def get_embeddings(
             batch_embeddings = response_payload.get("embeddings", [])
 
             if not batch_embeddings:
-                logger.warning(f"No embeddings returned for batch {(i // BATCH_SIZE) + 1}.")
+                logger.warning(
+                    f"No embeddings returned for batch {(i // BATCH_SIZE) + 1}."
+                )
                 embeddings.extend([[0.0] * EMBEDDING_DIM] * len(batch_texts))
             else:
                 for emb in batch_embeddings:
@@ -161,10 +173,14 @@ def get_embeddings(
                         )
                 embeddings.extend(batch_embeddings)
 
-            logger.info(f"Batch {(i // BATCH_SIZE) + 1} / {((len(texts) - 1) // BATCH_SIZE) + 1} processed.")
+            logger.info(
+                f"Batch {(i // BATCH_SIZE) + 1} / {((len(texts) - 1) // BATCH_SIZE) + 1} processed."
+            )
 
         except ClientError:
-            logger.error(f"ClientError while retrieving embeddings:\n{traceback.format_exc()}")
+            logger.error(
+                f"ClientError while retrieving embeddings:\n{traceback.format_exc()}"
+            )
             embeddings.extend([[0.0] * EMBEDDING_DIM] * len(batch_texts))
         except Exception:
             logger.error(f"Error during embedding retrieval:\n{traceback.format_exc()}")
@@ -187,16 +203,18 @@ def parse_assistant_message(response: Dict[str, Any]) -> str:
 
     if message.get("role") == "assistant":
         content_list = message.get("content", [])
-        if content_list and isinstance(content_list, list) and "text" in content_list[0]:
+        if (
+            content_list
+            and isinstance(content_list, list)
+            and "text" in content_list[0]
+        ):
             return content_list[0]["text"]
 
     return "NO ASSISTANT MESSAGE"
 
 
 def retrieve_documents_from_s3(
-    s3_client: "boto3.client",
-    bucket: str,
-    doc_keys: List[str]
+    s3_client: "boto3.client", bucket: str, doc_keys: List[str]
 ) -> List[str]:
     """
     Given a list of S3 object keys, retrieve the document content from each.
@@ -216,7 +234,9 @@ def retrieve_documents_from_s3(
             documents.append(content)
             logger.info(f"Retrieved document from key: {doc_key}")
         except Exception:
-            logger.error(f"Failed to retrieve document '{doc_key}' from S3:\n{traceback.format_exc()}")
+            logger.error(
+                f"Failed to retrieve document '{doc_key}' from S3:\n{traceback.format_exc()}"
+            )
             # Optionally append an empty string or skip
             documents.append("")
     return documents
@@ -225,6 +245,7 @@ def retrieve_documents_from_s3(
 # ------------------------------------------------------------------------------
 # Lambda Handler
 # ------------------------------------------------------------------------------
+
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -255,10 +276,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(error_msg)
         return {
             "statusCode": 400,
-            "body": json.dumps({
-                "status": "error",
-                "message": error_msg
-            })
+            "body": json.dumps({"status": "error", "message": error_msg}),
         }
 
     if not query:
@@ -266,10 +284,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(error_msg)
         return {
             "statusCode": 400,
-            "body": json.dumps({
-                "status": "error",
-                "message": error_msg
-            })
+            "body": json.dumps({"status": "error", "message": error_msg}),
         }
 
     try:
@@ -280,10 +295,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Invalid 'k' value: {ve}")
         return {
             "statusCode": 400,
-            "body": json.dumps({
-                "status": "error",
-                "message": f"Invalid 'k' value: {ve}"
-            })
+            "body": json.dumps(
+                {"status": "error", "message": f"Invalid 'k' value: {ve}"}
+            ),
         }
 
     # Initialize AWS clients
@@ -294,7 +308,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # 1. Load FAISS index and document IDs
     # ------------------------------------------------------------------------------
     try:
-        index = load_faiss_index(s3_client, s3_bucket, FAISS_INDEX_S3_KEY, EMBEDDING_DIM)
+        index = load_faiss_index(
+            s3_client, s3_bucket, FAISS_INDEX_S3_KEY, EMBEDDING_DIM
+        )
         doc_ids = load_doc_ids(s3_client, s3_bucket, DOC_IDS_S3_KEY)
         logger.info(f"Number of loaded doc IDs: {len(doc_ids)}")
     except Exception as e:
@@ -302,11 +318,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Failed to load FAISS index or doc IDs. Error:\n{error_trace}")
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "status": "error",
-                "message": "Failed to load FAISS index or doc IDs from S3.",
-                "details": error_trace
-            })
+            "body": json.dumps(
+                {
+                    "status": "error",
+                    "message": "Failed to load FAISS index or doc IDs from S3.",
+                    "details": error_trace,
+                }
+            ),
         }
 
     # ------------------------------------------------------------------------------
@@ -323,11 +341,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Failed to retrieve embeddings. Error:\n{error_trace}")
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "status": "error",
-                "message": "Error during embedding retrieval.",
-                "details": error_trace
-            })
+            "body": json.dumps(
+                {
+                    "status": "error",
+                    "message": "Error during embedding retrieval.",
+                    "details": error_trace,
+                }
+            ),
         }
 
     # Validate embedding dimension
@@ -339,10 +359,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(error_msg)
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "status": "error",
-                "message": error_msg
-            })
+            "body": json.dumps({"status": "error", "message": error_msg}),
         }
 
     # ------------------------------------------------------------------------------
@@ -357,11 +374,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Error during FAISS search:\n{error_trace}")
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "status": "error",
-                "message": "Error during FAISS retrieval.",
-                "details": error_trace
-            })
+            "body": json.dumps(
+                {
+                    "status": "error",
+                    "message": "Error during FAISS retrieval.",
+                    "details": error_trace,
+                }
+            ),
         }
 
     # ------------------------------------------------------------------------------
@@ -374,12 +393,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(error_msg)
         return {
             "statusCode": 200,
-            "body": json.dumps({
-                "status": "success",
-                "message": error_msg,
-                "answer": "",
-                "retrieved_docs": []
-            })
+            "body": json.dumps(
+                {
+                    "status": "success",
+                    "message": error_msg,
+                    "answer": "",
+                    "retrieved_docs": [],
+                }
+            ),
         }
 
     retrieved_docs = retrieve_documents_from_s3(s3_client, s3_bucket, doc_keys)
@@ -391,12 +412,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(error_msg)
         return {
             "statusCode": 200,
-            "body": json.dumps({
-                "status": "success",
-                "message": error_msg,
-                "answer": "",
-                "retrieved_docs": []
-            })
+            "body": json.dumps(
+                {
+                    "status": "success",
+                    "message": error_msg,
+                    "answer": "",
+                    "retrieved_docs": [],
+                }
+            ),
         }
 
     # ------------------------------------------------------------------------------
@@ -417,33 +440,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Include both the document text and its name (the S3 key)
     for i, (doc_text, doc_key) in enumerate(zip(retrieved_docs, doc_keys), 1):
         user_content_blocks.append(
-            {
-                "text": f"Document {i} (source: {doc_key}):\n{doc_text}\n"
-            }
+            {"text": f"Document {i} (source: {doc_key}):\n{doc_text}\n"}
         )
 
     # Finally, append the user’s question
     user_content_blocks.append({"text": f"Question: {query}\n"})
 
-    messages = [
-        {
-            "role": "user",
-            "content": user_content_blocks
-        }
-    ]
+    messages = [{"role": "user", "content": user_content_blocks}]
 
-    inference_config = {
-        "maxTokens": 500,
-        "temperature": 0.7,
-        "topP": 0.8
-    }
+    inference_config = {"maxTokens": 500, "temperature": 0.7, "topP": 0.8}
 
     try:
         response = bedrock_client.converse(
             modelId=BEDROCK_GEN_MODEL_ID,
             messages=messages,
             system=system,
-            inferenceConfig=inference_config
+            inferenceConfig=inference_config,
         )
         logger.info("Bedrock 'converse' call succeeded. Parsing the response...")
         answer = parse_assistant_message(response)
@@ -453,36 +465,42 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.error(f"Failed to call Bedrock generative model:\n{error_trace}")
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "status": "error",
-                "message": "Failed to generate an answer via the Bedrock model.",
-                "details": error_trace
-            })
+            "body": json.dumps(
+                {
+                    "status": "error",
+                    "message": "Failed to generate an answer via the Bedrock model.",
+                    "details": error_trace,
+                }
+            ),
         }
     except Exception as e:
         error_trace = traceback.format_exc()
         logger.error(f"Error during answer generation:\n{error_trace}")
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "status": "error",
-                "message": "Error during answer generation.",
-                "details": error_trace
-            })
+            "body": json.dumps(
+                {
+                    "status": "error",
+                    "message": "Error during answer generation.",
+                    "details": error_trace,
+                }
+            ),
         }
 
     # Final success return
     return {
         "statusCode": 200,
-        "body": json.dumps({
-            "status": "success",
-            "query": query,
-            "answer": answer,
-            "retrieved_docs": {
-                i: {
-                    "doc_key": doc_key,
-                    "doc_text": doc_text
-                } for i, (doc_key, doc_text) in enumerate(zip(doc_keys, retrieved_docs))
+        "body": json.dumps(
+            {
+                "status": "success",
+                "query": query,
+                "answer": answer,
+                "retrieved_docs": {
+                    i: {"doc_key": doc_key, "doc_text": doc_text}
+                    for i, (doc_key, doc_text) in enumerate(
+                        zip(doc_keys, retrieved_docs)
+                    )
+                },
             }
-        })
+        ),
     }

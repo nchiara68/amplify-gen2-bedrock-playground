@@ -51,6 +51,9 @@ export default function Sidebar({
                 <Link href="/employeeInformationRetriever" className="sidebar-item">
                     Employee Information Retriever
                 </Link>
+                <Link href="/employeeTalentGraph" className="sidebar-item">
+                    Employee Talent Graph
+                </Link>
 
                 {/* Divider above Account Settings */}
                 <hr className="sidebar-divider" />

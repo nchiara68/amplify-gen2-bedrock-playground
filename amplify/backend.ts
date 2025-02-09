@@ -8,105 +8,118 @@ import { createOpenSearchServerlessCollectionFunctionHandler } from "./custom-fu
 import { deleteOpenSearchServerlessCollectionFunctionHandler } from "./custom-functions/deleteOpenSearchServerlessCollection/resource";
 import { createKnowledgeBaseFunctionHandler } from "./custom-functions/createKnowledgeBase/resource";
 import { deleteKnowledgeBaseFunctionHandler } from "./custom-functions/deleteKnowledgeBase/resource";
+import { convertTextToGraphFunctionHandler } from "./custom-functions/convertTextToGraph/resource";
 import * as iam from "aws-cdk-lib/aws-iam";
 
 const backend = defineBackend({
-    auth,
-    data,
-    virtualCompanyStorage,
-    createFaissIndexFunctionHandler,
-    ragFaissIndexFunctionHandler,
-    createOpenSearchServerlessCollectionFunctionHandler,
-    deleteOpenSearchServerlessCollectionFunctionHandler,
-    createKnowledgeBaseFunctionHandler,
-    deleteKnowledgeBaseFunctionHandler,
+  auth,
+  data,
+  virtualCompanyStorage,
+  createFaissIndexFunctionHandler,
+  ragFaissIndexFunctionHandler,
+  createOpenSearchServerlessCollectionFunctionHandler,
+  deleteOpenSearchServerlessCollectionFunctionHandler,
+  createKnowledgeBaseFunctionHandler,
+  deleteKnowledgeBaseFunctionHandler,
+  convertTextToGraphFunctionHandler,
 });
 
 const statementCreateFaissIndex = new iam.PolicyStatement({
-    actions: ["s3:*", "bedrock:*"],
-    resources: ["*"],
+  actions: ["s3:*", "bedrock:*"],
+  resources: ["*"],
 });
 const createFaissIndexFunctionHandlerLambda =
-    backend.createFaissIndexFunctionHandler.resources.lambda;
+  backend.createFaissIndexFunctionHandler.resources.lambda;
 createFaissIndexFunctionHandlerLambda.addToRolePolicy(
-    statementCreateFaissIndex
+  statementCreateFaissIndex
 );
 
 const statementRagFaissIndex = new iam.PolicyStatement({
-    actions: ["s3:*", "bedrock:*"],
-    resources: ["*"],
+  actions: ["s3:*", "bedrock:*"],
+  resources: ["*"],
 });
 const ragFaissIndexFunctionHandlerLambda =
-    backend.ragFaissIndexFunctionHandler.resources.lambda;
+  backend.ragFaissIndexFunctionHandler.resources.lambda;
 ragFaissIndexFunctionHandlerLambda.addToRolePolicy(statementRagFaissIndex);
 
 // Creating, listing, and deleting Amazon OpenSearch Serverless collections
 // https://docs.aws.amazon.com/ja_jp/opensearch-service/latest/developerguide/serverless-manage.html
 const statementCreateOpenSearchServerlessCollection = new iam.PolicyStatement({
-    actions: [
-        "aoss:CreateCollection",
-        "aoss:ListCollections",
-        "aoss:BatchGetCollection",
-        "aoss:UpdateCollection",
-        "aoss:DeleteCollection",
-        "aoss:CreateAccessPolicy",
-        "aoss:CreateSecurityPolicy",
-        "iam:CreateServiceLinkedRole",
-    ],
-    resources: ["*"],
+  actions: [
+    "aoss:CreateCollection",
+    "aoss:ListCollections",
+    "aoss:BatchGetCollection",
+    "aoss:UpdateCollection",
+    "aoss:DeleteCollection",
+    "aoss:CreateAccessPolicy",
+    "aoss:CreateSecurityPolicy",
+    "iam:CreateServiceLinkedRole",
+  ],
+  resources: ["*"],
 });
 
 const createOpenSearchServerlessCollectionFunctionHandlerLambda =
-    backend.createOpenSearchServerlessCollectionFunctionHandler.resources
-        .lambda;
+  backend.createOpenSearchServerlessCollectionFunctionHandler.resources.lambda;
 
 createOpenSearchServerlessCollectionFunctionHandlerLambda.addToRolePolicy(
-    statementCreateOpenSearchServerlessCollection
+  statementCreateOpenSearchServerlessCollection
 );
 
 const deleteOpenSearchServerlessCollectionFunctionHandlerLambda =
-    backend.deleteOpenSearchServerlessCollectionFunctionHandler.resources
-        .lambda;
+  backend.deleteOpenSearchServerlessCollectionFunctionHandler.resources.lambda;
 
 deleteOpenSearchServerlessCollectionFunctionHandlerLambda.addToRolePolicy(
-    statementCreateOpenSearchServerlessCollection
+  statementCreateOpenSearchServerlessCollection
 );
 
 // Grant access to Bedrock - Create Knowledge Base
 const statementCreateKnowledgeBase = new iam.PolicyStatement({
-    actions: [
-        "bedrock:CreateKnowledgeBase",
-        "bedrock:ListKnowledgeBases",
-        "iam:CreateRole",
-        "iam:GetRole",
-        "iam:AttachRolePolicy",
-        "aoss:CreateCollection",
-        "aoss:ListCollections",
-        "aoss:BatchGetCollection",
-        "aoss:UpdateCollection",
-        "aoss:DeleteCollection",
-        "aoss:CreateAccessPolicy",
-        "aoss:CreateSecurityPolicy",
-    ],
-    resources: ["*"],
+  actions: [
+    "bedrock:CreateKnowledgeBase",
+    "bedrock:ListKnowledgeBases",
+    "iam:CreateRole",
+    "iam:GetRole",
+    "iam:AttachRolePolicy",
+    "aoss:CreateCollection",
+    "aoss:ListCollections",
+    "aoss:BatchGetCollection",
+    "aoss:UpdateCollection",
+    "aoss:DeleteCollection",
+    "aoss:CreateAccessPolicy",
+    "aoss:CreateSecurityPolicy",
+  ],
+  resources: ["*"],
 });
 
 const createKnowledgeBaseFunctionHandlerLambda =
-    backend.createKnowledgeBaseFunctionHandler.resources.lambda;
+  backend.createKnowledgeBaseFunctionHandler.resources.lambda;
 
 createKnowledgeBaseFunctionHandlerLambda.addToRolePolicy(
-    statementCreateKnowledgeBase
+  statementCreateKnowledgeBase
 );
 
 // Grant access to Bedrock - Delete Knowledge Base
 const statementDeleteKnowledgeBase = new iam.PolicyStatement({
-    actions: ["bedrock:DeleteKnowledgeBase"],
-    resources: ["*"],
+  actions: ["bedrock:DeleteKnowledgeBase"],
+  resources: ["*"],
 });
 
 const deleteKnowledgeBaseFunctionHandlerLambda =
-    backend.deleteKnowledgeBaseFunctionHandler.resources.lambda;
+  backend.deleteKnowledgeBaseFunctionHandler.resources.lambda;
 
 deleteKnowledgeBaseFunctionHandlerLambda.addToRolePolicy(
-    statementDeleteKnowledgeBase
+  statementDeleteKnowledgeBase
+);
+
+// Grant access to Bedrock - Convert Text to Graph
+const statementConvertTextToGraph = new iam.PolicyStatement({
+  actions: ["bedrock:*"],
+  resources: ["*"],
+});
+
+const convertTextToGraphFunctionHandlerLambda =
+  backend.convertTextToGraphFunctionHandler.resources.lambda;
+
+convertTextToGraphFunctionHandlerLambda.addToRolePolicy(
+  statementConvertTextToGraph
 );
