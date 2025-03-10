@@ -35,37 +35,44 @@ def handler(event, context):
     structured_output_schema = {
         "nodes": [
             {
-                "id": "STRING",  # Unique identifier for the node
-                "label": "STRING",  # Node type (e.g., Person, Company)
-                "properties": {"key": "value"},  # Additional attributes
+                "labels": [
+                    "STRING"
+                ],  # Node labels in OpenCypher format (e.g., Person, Company)
+                "properties": {"key": "value"},  # Properties
             }
         ],
         "edges": [
             {
-                "source": "STRING",  # Must match a node id
-                "target": "STRING",  # Must match a node id
-                "type": "STRING",  # Relationship type (e.g., WORKS_AT)
-                "properties": {"key": "value"},  # Additional attributes
+                "source": {  # Source node matcher
+                    "labels": ["STRING"],
+                    "properties": {"key": "value"},
+                },
+                "target": {  # Target node matcher
+                    "labels": ["STRING"],
+                    "properties": {"key": "value"},
+                },
+                "type": "STRING",  # Relationship type in uppercase with underscores
+                "properties": {"key": "value"},  # Relationship properties
             }
         ],
     }
 
     sample_output = {
         "nodes": [
-            {"id": "1", "label": "Person", "properties": {"name": "Alice"}},
-            {"id": "2", "label": "Company", "properties": {"name": "TechCorp"}},
-            {"id": "3", "label": "Company", "properties": {"name": "DataSoft"}},
+            {"labels": ["Person"], "properties": {"name": "Alice"}},
+            {"labels": ["Company"], "properties": {"name": "TechCorp"}},
+            {"labels": ["Company"], "properties": {"name": "DataSoft"}},
         ],
         "edges": [
             {
-                "source": "1",
-                "target": "2",
+                "source": {"labels": ["Person"], "properties": {"name": "Alice"}},
+                "target": {"labels": ["Company"], "properties": {"name": "TechCorp"}},
                 "type": "WORKS_AS",
                 "properties": {"role": "CEO"},
             },
             {
-                "source": "1",
-                "target": "3",
+                "source": {"labels": ["Person"], "properties": {"name": "Alice"}},
+                "target": {"labels": ["Company"], "properties": {"name": "DataSoft"}},
                 "type": "WORKED_AT",
                 "properties": {"from": "2015", "to": "2020"},
             },

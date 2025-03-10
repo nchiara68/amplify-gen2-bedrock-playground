@@ -5,7 +5,11 @@ import { createOpenSearchServerlessCollectionFunctionHandler } from "../custom-f
 import { deleteOpenSearchServerlessCollectionFunctionHandler } from "../custom-functions/deleteOpenSearchServerlessCollection/resource";
 import { createKnowledgeBaseFunctionHandler } from "../custom-functions/createKnowledgeBase/resource";
 import { deleteKnowledgeBaseFunctionHandler } from "../custom-functions/deleteKnowledgeBase/resource";
-import { convertTextToGraphFunctionHandler } from "../custom-functions/convertTextToGraph/resource";
+import { convertTextToNodeRelationJsonFunctionHandler } from "../custom-functions/convertTextToNodeRelationJson/resource";
+import { convertNodeRelationJsonToOpenCypherQueryFunctionHandler } from "../custom-functions/convertNodeRelationJsonToOpenCypherQuery/resource";
+import { executeOpenCypherQueryForNeptuneFunctionHandler } from "../custom-functions/executeOpenCypherQueryForNeptune/resource";
+import { converseSystemPromptFunctionHandler } from "../custom-functions/converseSystemPrompt/resource";
+
 const SystemPromptACTCounselor = `System Prompt: Sophisticated ACT Counselor
 
 You are an expert Acceptance and Commitment Therapy (ACT) counselor, blending compassion with evidence-based techniques to guide users through self-exploration, mindfulness, and committed action. Your responses should reflect a nuanced understanding of ACT principles and a sophisticated, empathetic tone, while engaging users with reflective and insightful guidance. Adhere strictly to the following guidelines:
@@ -56,137 +60,190 @@ Your response should always focus on helping the user move closer to their desir
 
 When unsure, offer options or examples to guide the user toward the best path forward.
 `;
+
 const schema = a.schema({
-  // ACT Counselor
-  ActCounselor: a
-    .conversation({
-      aiModel: a.ai.model("Claude 3.5 Sonnet"),
-      systemPrompt: SystemPromptACTCounselor,
-    })
-    .authorization((allow) => allow.owner()),
+    // ACT Counselor
+    ActCounselor: a
+        .conversation({
+            aiModel: a.ai.model("Claude 3.5 Sonnet"),
+            systemPrompt: SystemPromptACTCounselor,
+        })
+        .authorization((allow) => allow.owner()),
 
-  // Action Planner
-  ActionPlanStep: a.customType({
-    stepNumber: a.integer().required(), // Step order in the action plan
-    actionItem: a.string().required(), // Specific action to be taken
-    details: a.string(), // Additional details for the step (optional)
-    importance: a.integer().required(), // Importance level for the step
-    estimatedTime: a.string().required(), // Estimated time to complete this step
-  }),
+    // Action Planner
+    ActionPlanStep: a.customType({
+        stepNumber: a.integer().required(), // Step order in the action plan
+        actionItem: a.string().required(), // Specific action to be taken
+        details: a.string(), // Additional details for the step (optional)
+        importance: a.integer().required(), // Importance level for the step
+        estimatedTime: a.string().required(), // Estimated time to complete this step
+    }),
 
-  ClarifyingQuestion: a.customType({
-    question: a.string().required(), // The clarifying question
-  }),
+    ClarifyingQuestion: a.customType({
+        question: a.string().required(), // The clarifying question
+    }),
 
-  ActionPlan: a.customType({
-    taskSummary: a.string().required(), // A brief summary of the user's task or goal
-    clarifyingQuestions: a.ref("ClarifyingQuestion").array().required(), // Array of clarifying questions
-    actionPlanSteps: a.ref("ActionPlanStep").array().required(), // Array of action plan steps
-    notes: a.string(), // Additional recommendations or reminders
-  }),
+    ActionPlan: a.customType({
+        taskSummary: a.string().required(), // A brief summary of the user's task or goal
+        clarifyingQuestions: a.ref("ClarifyingQuestion").array().required(), // Array of clarifying questions
+        actionPlanSteps: a.ref("ActionPlanStep").array().required(), // Array of action plan steps
+        notes: a.string(), // Additional recommendations or reminders
+    }),
 
-  generateActionPlan: a
-    .generation({
-      aiModel: a.ai.model("Claude 3.5 Sonnet"),
-      systemPrompt: SystemPromptActionPlanner,
-    })
-    .arguments({
-      description: a.string().required(), // The task or goal description provided by the user
-    })
-    .returns(a.ref("ActionPlan")) // Returns the structured action plan
-    .authorization((allow) => allow.authenticated()),
+    generateActionPlan: a
+        .generation({
+            aiModel: a.ai.model("Claude 3.5 Sonnet"),
+            systemPrompt: SystemPromptActionPlanner,
+        })
+        .arguments({
+            description: a.string().required(), // The task or goal description provided by the user
+        })
+        .returns(a.ref("ActionPlan")) // Returns the structured action plan
+        .authorization((allow) => allow.authenticated()),
 
-  // create FAISS Index
-  createFaissIndex: a
+    // create FAISS Index
+    createFaissIndex: a
+        .query()
+        .arguments({
+            s3_bucket: a.string().required(),
+            s3_key: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(createFaissIndexFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // rag FAISS Index
+    ragFaissIndex: a
+        .query()
+        .arguments({
+            s3_bucket: a.string().required(),
+            query: a.string().required(),
+            k: a.integer(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(ragFaissIndexFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // create Collection
+    createOpenSearchServerlessCollection: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+            description: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(
+                createOpenSearchServerlessCollectionFunctionHandler
+            )
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    // delete Collection
+    deleteOpenSearchServerlessCollection: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(
+                deleteOpenSearchServerlessCollectionFunctionHandler
+            )
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    // create Knowledge Base
+    createKnowledgeBase: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+            collectionDescription: a.string().required(),
+            knowledgeBaseName: a.string().required(),
+            description: a.string().required(),
+            embeddingModelArn: a.string().required(),
+            vectorIndexName: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(createKnowledgeBaseFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // delete Knowledge Base
+    deleteKnowledgeBase: a
+        .query()
+        .arguments({
+            collectionName: a.string().required(),
+            knowledgeBaseName: a.string().required(),
+            roleName: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(a.handler.function(deleteKnowledgeBaseFunctionHandler))
+        .authorization((allow) => allow.authenticated()),
+
+    // convert Text to Graph
+    convertTextToNodeRelationJson: a
+        .query()
+        .arguments({
+            text: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(convertTextToNodeRelationJsonFunctionHandler)
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    // convert Node Relation Json to OpenCypher Query
+    convertNodeRelationJsonToOpenCypherQuery: a
+        .query()
+        .arguments({
+            nodeRelationJson: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(
+                convertNodeRelationJsonToOpenCypherQueryFunctionHandler
+            )
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    // execute Open Cypher Query for Neptune
+    executeOpenCypherQueryForNeptune: a
+        .query()
+        .arguments({
+            openCypherQuery: a.string().required(),
+            neptuneEndpoint: a.string().required(),
+        })
+        .returns(a.json())
+        .handler(
+            a.handler.function(executeOpenCypherQueryForNeptuneFunctionHandler)
+        )
+        .authorization((allow) => allow.authenticated()),
+
+    systemPrompts: a
+        .model({
+            name: a.string().required(),
+            systemPrompt: a.string().required(),
+        })
+        .authorization((allow) => allow.authenticated()),
+
+    converseSystemPrompt: a
     .query()
     .arguments({
-      s3_bucket: a.string().required(),
-      s3_key: a.string().required(),
-    })
-    .returns(a.json())
-    .handler(a.handler.function(createFaissIndexFunctionHandler))
-    .authorization((allow) => allow.authenticated()),
-
-  // rag FAISS Index
-  ragFaissIndex: a
-    .query()
-    .arguments({
-      s3_bucket: a.string().required(),
-      query: a.string().required(),
-      k: a.integer(),
-    })
-    .returns(a.json())
-    .handler(a.handler.function(ragFaissIndexFunctionHandler))
-    .authorization((allow) => allow.authenticated()),
-
-  // create Collection
-  createOpenSearchServerlessCollection: a
-    .query()
-    .arguments({
-      collectionName: a.string().required(),
-      description: a.string().required(),
+      systemPrompt: a.string().required(),
+      Messages: a.string().required(),
     })
     .returns(a.json())
     .handler(
-      a.handler.function(createOpenSearchServerlessCollectionFunctionHandler)
+      a.handler.function(converseSystemPromptFunctionHandler)
     )
-    .authorization((allow) => allow.authenticated()),
-
-  // delete Collection
-  deleteOpenSearchServerlessCollection: a
-    .query()
-    .arguments({
-      collectionName: a.string().required(),
-    })
-    .returns(a.json())
-    .handler(
-      a.handler.function(deleteOpenSearchServerlessCollectionFunctionHandler)
-    )
-    .authorization((allow) => allow.authenticated()),
-
-  // create Knowledge Base
-  createKnowledgeBase: a
-    .query()
-    .arguments({
-      collectionName: a.string().required(),
-      collectionDescription: a.string().required(),
-      knowledgeBaseName: a.string().required(),
-      description: a.string().required(),
-      embeddingModelArn: a.string().required(),
-      vectorIndexName: a.string().required(),
-    })
-    .returns(a.json())
-    .handler(a.handler.function(createKnowledgeBaseFunctionHandler))
-    .authorization((allow) => allow.authenticated()),
-
-  // delete Knowledge Base
-  deleteKnowledgeBase: a
-    .query()
-    .arguments({
-      collectionName: a.string().required(),
-      knowledgeBaseName: a.string().required(),
-      roleName: a.string().required(),
-    })
-    .returns(a.json())
-    .handler(a.handler.function(deleteKnowledgeBaseFunctionHandler))
-    .authorization((allow) => allow.authenticated()),
-
-  // convert Text to Graph
-  convertTextToGraph: a
-    .query()
-    .arguments({
-      text: a.string().required(),
-    })
-    .returns(a.json())
-    .handler(a.handler.function(convertTextToGraphFunctionHandler))
     .authorization((allow) => allow.authenticated()),
 });
 
 export type Schema = ClientSchema<typeof schema>;
 
 export const data = defineData({
-  schema,
-  authorizationModes: {
-    defaultAuthorizationMode: "userPool",
-  },
+    schema,
+    authorizationModes: {
+        defaultAuthorizationMode: "userPool",
+    },
 });

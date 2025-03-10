@@ -7,9 +7,9 @@ import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 
 const functionDir = path.dirname(fileURLToPath(import.meta.url));
 
-export const convertTextToGraphFunctionHandler = defineFunction(
+export const convertTextToNodeRelationJsonFunctionHandler = defineFunction(
   (scope) =>
-    new Function(scope, "convertTextToGraph", {
+    new Function(scope, "convertTextToNodeRelationJson", {
       handler: "index.handler",
       runtime: Runtime.PYTHON_3_12, // or any other python version
       timeout: Duration.seconds(300), //  default is 3 seconds
