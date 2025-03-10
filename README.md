@@ -1,3 +1,5 @@
+# [Amplify Gen 2 Bedrock Playground](https://screeching-era-6eb.notion.site/Amplify-Gen-2-Bedrock-Playground-17cd8c4cd22280b9871bfac340b7bdc9?pvs=4)
+
 # Description
 
 This playground project demonstrates the capabilities of AWS Bedrock integrated with AWS Amplify Gen 2. It showcases multiple AI/ML solutions through practical examples. By following each application's documentation, users can learn how the applications are structured and how to build them.
