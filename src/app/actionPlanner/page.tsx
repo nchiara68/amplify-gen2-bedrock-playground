@@ -21,7 +21,7 @@ export default function ActionPlanner() {
 
     // 3. Handle form submission
     const handleGenerateActionPlan = async () => {
-        if (taskDescription.trim() === "") {
+        if (taskDescription.trim() === "") { // Proceed only if taskDescription is not empty after trimming
             alert("Please enter a task description.");
             return;
         }

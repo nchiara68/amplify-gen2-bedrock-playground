@@ -10,10 +10,10 @@ import {
     Text,
     Alert,
 } from "@aws-amplify/ui-react";
-import { AIConversation } from "@aws-amplify/ui-react-ai";
 import { useState, useEffect } from "react";
 import { client, useAIConversation } from "../../client";
 
+// Defines the structure of a system prompt from the database
 interface PromptData {
     id: string;
     name: string;
@@ -22,6 +22,7 @@ interface PromptData {
     updatedAt: string;
 }
 
+// Defines the structure of chat messages between user and AI
 interface Message {
     role: "user" | "assistant";
     content: [
@@ -32,23 +33,32 @@ interface Message {
 }
 
 export default function SystemPromptSelector() {
+    // State management for system prompts
     const [systemPrompts, setSystemPrompts] = useState<PromptData[]>([]);
+    const [selectedPrompt, setSelectedPrompt] = useState<string>("");
+
+    // UI state management
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [selectedPrompt, setSelectedPrompt] = useState<string>("");
+
+    // New prompt creation state
     const [isCreatingNewPrompt, setIsCreatingNewPrompt] =
         useState<boolean>(false);
     const [newPromptName, setNewPromptName] = useState<string>("");
     const [newPromptSystemPrompt, setNewPromptSystemPrompt] =
         useState<string>("");
+
+    // Prompt deletion state
     const [isDeletingPrompt, setIsDeletingPrompt] = useState<boolean>(false);
     const [deletingPromptId, setDeletingPromptId] = useState<string>("");
     const [deletingPrompt, setDeletingPrompt] = useState<string>("");
+
+    // Chat interaction state
     const [userMessage, setUserMessage] = useState<string>("");
     const [messages, setMessages] = useState<Message[]>([]);
 
-    // Clear messages after 5 seconds
+    // Auto-clear status messages after 5 seconds
     useEffect(() => {
         if (error || success) {
             const timer = setTimeout(() => {
@@ -59,7 +69,7 @@ export default function SystemPromptSelector() {
         }
     }, [error, success]);
 
-    // Fetch System Prompt from Database
+    // Fetches all system prompts from the database
     const fetchSystemPrompts = async () => {
         try {
             setLoading(true);
@@ -101,12 +111,12 @@ export default function SystemPromptSelector() {
         }
     };
 
-    // Reflect Immediately
+    // Load prompts on component mount
     useEffect(() => {
         fetchSystemPrompts();
     }, []);
 
-    // Create New Prompt
+    // Creates a new system prompt in the database
     const createSystemPrompt = async (
         newPromptName: string,
         newPromptSystemPrompt: string
@@ -129,7 +139,6 @@ export default function SystemPromptSelector() {
                 data,
                 errors,
             });
-
             if (errors?.length) {
                 const errorMessage =
                     errors[0]?.message || "Failed to create system prompt";
@@ -164,7 +173,7 @@ export default function SystemPromptSelector() {
         }
     };
 
-    // Delete Prompt
+    // Deletes a system prompt from the database
     const deleteSystemPrompt = async (promptId: string) => {
         try {
             if (!promptId) {
@@ -183,7 +192,6 @@ export default function SystemPromptSelector() {
                 data,
                 errors,
             });
-
             if (errors?.length) {
                 const errorMessage =
                     errors[0]?.message || "Failed to delete system prompt";
@@ -216,7 +224,7 @@ export default function SystemPromptSelector() {
         }
     };
 
-    // AI Converse
+    // Handles conversation with AI using selected system prompt
     const handleConverse = async () => {
         try {
             messages.push({
@@ -228,7 +236,6 @@ export default function SystemPromptSelector() {
                 ],
             });
 
-            // Convert to JSON string to pass to the Lambda function
             const formattedUserMessage = JSON.stringify(messages);
 
             const response = await client.queries.converseSystemPrompt({
@@ -242,10 +249,7 @@ export default function SystemPromptSelector() {
             const response_message = body.messages[0];
 
             messages.push(response_message);
-
             console.log(messages);
-
-            // Clear user message input
             setUserMessage("");
         } catch (err) {
             console.error("Error in conversation:", err);
@@ -253,15 +257,20 @@ export default function SystemPromptSelector() {
         }
     };
 
+    // Clears the current conversation history
     const clearConversation = async () => {
         setMessages([]);
         setUserMessage("");
     };
 
+    // Component UI render
     return (
+        // Main container with padding
         <View padding="2rem">
+            {/* Main title of the component */}
             <Heading level={1}>System Prompt Selector</Heading>
 
+            {/* Error alert message - displays when there's an error state */}
             {error && (
                 <Alert
                     variation="error"
@@ -272,6 +281,7 @@ export default function SystemPromptSelector() {
                 </Alert>
             )}
 
+            {/* Success alert message - displays when an action is successful */}
             {success && (
                 <Alert
                     variation="success"
@@ -282,18 +292,22 @@ export default function SystemPromptSelector() {
                 </Alert>
             )}
 
+            {/* Dropdown field for selecting existing system prompts */}
             <SelectField
                 label="Select a system prompt"
                 placeholder="Select a system prompt"
                 onChange={(e) => setSelectedPrompt(e.target.value)}
                 isDisabled={loading}
             >
+                {/* Maps through available prompts to create dropdown options */}
                 {systemPrompts.map((prompt) => (
                     <option key={prompt.id} value={prompt.systemPrompt}>
                         {prompt.name}
                     </option>
                 ))}
             </SelectField>
+
+            {/* Display selected prompt content in a pre-formatted box */}
             {selectedPrompt && (
                 <Text
                     as="pre"
@@ -306,14 +320,17 @@ export default function SystemPromptSelector() {
                 </Text>
             )}
 
+            {/* System Prompt Management Section */}
             <View>
                 <Heading level={2}>System Prompt</Heading>
+                {/* Button to show the create prompt form */}
                 <Button
                     onClick={() => setIsCreatingNewPrompt(true)}
                     isDisabled={loading}
                 >
                     Create New Prompt
                 </Button>
+                {/* Button to show the delete prompt form */}
                 <Button
                     onClick={() => setIsDeletingPrompt(true)}
                     isDisabled={loading}
@@ -322,15 +339,18 @@ export default function SystemPromptSelector() {
                 </Button>
             </View>
 
+            {/* Create New Prompt Form - shown when isCreatingNewPrompt is true */}
             {isCreatingNewPrompt && (
                 <View>
                     <Heading level={2}>Create New Prompt</Heading>
+                    {/* Input field for prompt name */}
                     <TextField
                         label="Name"
                         onChange={(e) => setNewPromptName(e.target.value)}
                         isDisabled={loading}
                         required
                     />
+                    {/* Text area for prompt content */}
                     <TextAreaField
                         label="System Prompt"
                         onChange={(e) =>
@@ -339,6 +359,7 @@ export default function SystemPromptSelector() {
                         isDisabled={loading}
                         required
                     />
+                    {/* Submit button for creating new prompt */}
                     <Button
                         onClick={() =>
                             createSystemPrompt(
@@ -354,9 +375,11 @@ export default function SystemPromptSelector() {
                 </View>
             )}
 
+            {/* Delete Prompt Form - shown when isDeletingPrompt is true */}
             {isDeletingPrompt && (
                 <View>
                     <Heading level={2}>Delete Prompt</Heading>
+                    {/* Dropdown to select prompt for deletion */}
                     <SelectField
                         label="Select a prompt to delete"
                         placeholder="Select a prompt to delete"
@@ -371,6 +394,7 @@ export default function SystemPromptSelector() {
                         ))}
                     </SelectField>
                     <Text>{deletingPrompt}</Text>
+                    {/* Button to confirm prompt deletion */}
                     <Button
                         onClick={() => deleteSystemPrompt(deletingPromptId)}
                         isDisabled={loading || !deletingPromptId}
@@ -381,19 +405,23 @@ export default function SystemPromptSelector() {
                 </View>
             )}
 
+            {/* Chat Interface Section */}
             <View>
                 <Heading level={2}>Chat</Heading>
+                {/* Text area for user input */}
                 <TextAreaField
                     label="Test Chat"
                     onChange={(e) => setUserMessage(e.target.value)}
                     value={userMessage}
                 />
+                {/* Buttons for chat actions */}
                 <Button onClick={() => handleConverse()}>Converse</Button>
-
                 <Button onClick={() => clearConversation()}>Clear</Button>
             </View>
 
+            {/* Chat Message Display Section */}
             <View padding="1rem">
+                {/* Maps through conversation messages and displays them */}
                 {messages.map((message, index) => (
                     <Text
                         key={index}
@@ -403,6 +431,7 @@ export default function SystemPromptSelector() {
                         padding="1rem"
                         whiteSpace="pre-wrap"
                     >
+                        {/* Formats message differently based on sender (user/AI) */}
                         {message.role === "user"
                             ? "User: " + message.content[0].text
                             : "AI: " + message.content[0].text}
